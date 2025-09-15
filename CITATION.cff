@@ -1,0 +1,17 @@
+
+cff-version: 1.2.0
+title: pi-recursive-optimizer
+message: If you use this software, please cite it as below.
+type: software
+authors:
+  - name: Open Source Contributors
+version: "0.2.0"
+date-released: 2025-09-15
+license: MIT
+repository-code: https://github.com/<your-username>/pi-recursive-optimizer
+preferred-citation:
+  type: article
+  title: "Pi-Recursive Optimizers: Phase-Modulated Learning for Practical Training"
+  authors:
+    - name: Open Source Contributors
+  year: 2025
