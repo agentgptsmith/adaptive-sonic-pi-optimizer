@@ -1,3 +1,6 @@
+"""
+PiAdam: Adam optimizer with π-recursive learning rate and momentum modulation.
+"""
 
 import math
 from typing import Iterable, Optional, Tuple
@@ -5,13 +8,58 @@ import torch
 from torch.optim import Optimizer
 from ..schedules import PiPhase, pi_schedule
 
+
 class PiAdam(Optimizer):
-    def __init__(self, params: Iterable, lr: float = 3e-4, betas: Tuple[float, float] = (0.9, 0.999), eps: float = 1e-8, weight_decay: float = 0.0,
-                 pi_alpha: float = 0.25, pi_beta: float = 1.0, pi_lambdas: Optional[Iterable[float]] = None, pi_amplitude: float = 0.1,
-                 anneal_b: float = 1e-4, momentum_amplitude: float = 0.05, m_bounds: Tuple[float, float] = (0.7, 0.99),
-                 maximize: bool = False, foreach: Optional[bool] = None, capturable: bool = False, differentiable: bool = False, fused: Optional[bool] = None):
-        if lr <= 0.0: raise ValueError(f"Invalid lr: {lr}")
-        if eps <= 0.0: raise ValueError(f"Invalid eps: {eps}")
+    """
+    Adam optimizer with π-recursive modulation of learning rate and momentum.
+
+    Extends the standard AdamW algorithm with π-recursive breathing patterns that
+    help escape shallow local minima while maintaining training stability.
+
+    Args:
+        params: Iterable of parameters to optimize
+        lr: Base learning rate (default: 3e-4)
+        betas: Coefficients for running averages (default: (0.9, 0.999))
+        eps: Numerical stability term (default: 1e-8)
+        weight_decay: Weight decay coefficient (default: 0.0)
+        pi_alpha: Phase drift coefficient (default: 0.25)
+        pi_beta: Phase time offset (default: 1.0)
+        pi_lambdas: Harmonic amplitudes (default: [0.4, 0.15])
+        pi_amplitude: LR modulation amplitude (default: 0.1)
+        anneal_b: LR annealing coefficient (default: 1e-4)
+        momentum_amplitude: β₁ modulation amplitude (default: 0.05)
+        m_bounds: (min, max) bounds for β₁ (default: (0.7, 0.99))
+        maximize: Maximize instead of minimize (default: False)
+        foreach: Multi-tensor apply (default: None)
+        capturable: CUDA graph support (default: False)
+        differentiable: Gradient through optimizer (default: False)
+        fused: Fused kernel if available (default: None)
+    """
+
+    def __init__(
+        self,
+        params: Iterable,
+        lr: float = 3e-4,
+        betas: Tuple[float, float] = (0.9, 0.999),
+        eps: float = 1e-8,
+        weight_decay: float = 0.0,
+        pi_alpha: float = 0.25,
+        pi_beta: float = 1.0,
+        pi_lambdas: Optional[Iterable[float]] = None,
+        pi_amplitude: float = 0.1,
+        anneal_b: float = 1e-4,
+        momentum_amplitude: float = 0.05,
+        m_bounds: Tuple[float, float] = (0.7, 0.99),
+        maximize: bool = False,
+        foreach: Optional[bool] = None,
+        capturable: bool = False,
+        differentiable: bool = False,
+        fused: Optional[bool] = None
+    ) -> None:
+        if lr <= 0.0:
+            raise ValueError(f"Invalid lr: {lr}")
+        if eps <= 0.0:
+            raise ValueError(f"Invalid eps: {eps}")
         defaults = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, pi_alpha=pi_alpha, pi_beta=pi_beta,
                         pi_lambdas=list(pi_lambdas) if pi_lambdas is not None else [0.4, 0.15],
                         pi_amplitude=pi_amplitude, anneal_b=anneal_b, momentum_amplitude=momentum_amplitude,
@@ -22,6 +70,15 @@ class PiAdam(Optimizer):
 
     @torch.no_grad()
     def step(self, closure=None):
+        """
+        Perform a single optimization step with π-recursive modulation.
+
+        Args:
+            closure: Optional closure that reevaluates the model and returns loss
+
+        Returns:
+            Loss value if closure is provided, None otherwise
+        """
         loss = None
         if closure is not None:
             with torch.enable_grad():
